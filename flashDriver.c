@@ -34,6 +34,7 @@ static void lockFlash(void)
 	//cr lock flag
 	while(FLASH->SR & FLASH_SR_BSY);	//wait until flash free
 	FLASH->CR |= FLASH_CR_LOCK;
+	while(!(FLASH->CR & FLASH_CR_LOCK));	//wait until flash free
 }
 
 /*
@@ -42,13 +43,14 @@ static void lockFlash(void)
  */
 void flashDriverPageErase(uint8_t pageAdress)
 {
-	while(FLASH->SR & FLASH_SR_BSY);	//wait until flash operation is availble
 
 	if(FLASH->CR & FLASH_CR_LOCK)
 	{
 		//if flash is locked, unlock this
 		unlockFlash();
 	}
+
+	while(FLASH->SR & FLASH_SR_BSY);	//wait until flash operation is availble
 
 	//check and clear programming error flag
 	checkAndClearProgramErrors();
@@ -61,6 +63,8 @@ void flashDriverPageErase(uint8_t pageAdress)
 
 	FLASH->CR |= FLASH_CR_STRT;	//start erasing
 	while(FLASH->SR & FLASH_SR_BSY);	//wait until flash erased
+
+	FLASH->CR &= ~FLASH_CR_PER;	//Page erase disable
 
 	lockFlash();
 
@@ -122,8 +126,8 @@ void flashDriverProramDoubleWord(uint32_t adress, uint64_t Data)
 	checkAndClearProgramErrors();
 
 	FLASH->CR |= FLASH_CR_PG;	//start program
-	(* (uint32_t *) adress) = (uint32_t) Data;
-	(* (uint32_t *) (adress + 4)) = (uint32_t) (Data >> 32);
+	* (__IO uint32_t *) adress = (uint32_t) Data;
+	* (__IO uint32_t *)  (adress + 4U) = (uint32_t) (Data >> 32);
 
 	while(FLASH->SR & FLASH_SR_BSY);	//wait until program
 
