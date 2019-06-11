@@ -123,7 +123,7 @@ void flashDriverProramDoubleWord(uint32_t adress, uint64_t Data)
 
 	FLASH->CR |= FLASH_CR_PG;	//start program
 	(* (uint32_t *) adress) = (uint32_t) Data;
-	(* (uint32_t *) adress + 4) = (uint32_t) Data >> 32;
+	(* (uint32_t *) (adress + 4)) = (uint32_t) (Data >> 32);
 
 	while(FLASH->SR & FLASH_SR_BSY);	//wait until program
 
