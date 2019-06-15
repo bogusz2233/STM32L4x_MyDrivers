@@ -7,13 +7,15 @@
 #include "main.h"
 #include "uartDriver.h"
 #include "string.h"
+#include "timersDriver.h"
+
 //private function
 static void uartGPIOInit(void);
 static void uartSwitchToReceive(void);
 static void uartSwitchToTransmit(void);
 static void uartTransmit(uint8_t *, uint32_t);
 
-volatile UartStruct uartStruct;
+UartStruct uartStruct;
 
 /*
  *  Uart perh init
@@ -27,12 +29,13 @@ void uartInit(void)
 
 	//CR reg setup
 	UART_PERH->CR1 |= 	USART_CR1_RXNEIE	//RXNEIE interrupt is enable
-						|USART_CR1_RE;		// Receiver mode enable
+						|USART_CR1_RE		// Receiver mode enable
+						|USART_CR1_TE;
 
 	//set baudrate
 
 	//interupt set
-	NVIC_SetPriority(UART_PERH_IRQ, 0);
+	NVIC_SetPriority(UART_PERH_IRQ, 3);
 	NVIC_EnableIRQ(UART_PERH_IRQ);
 
 	uartStruct.uartFreeFlag = UART_IS_FREE;		//uart is free
@@ -64,8 +67,8 @@ static inline void uartGPIOInit(void)
 	UART_RX_PORT->OSPEEDR |= GPIO_OSPEEDER_OSPEEDR0_1 << (UART_RX_PIN * 2);
 //
 //	//set pull up
-//	UART_TX_PORT->PUPDR |= GPIO_PUPDR_PUPD0_0 << (UART_TX_PIN * 2);
-//	UART_RX_PORT->PUPDR |= GPIO_PUPDR_PUPD0_0 << (UART_RX_PIN * 2);
+	UART_TX_PORT->PUPDR |= GPIO_PUPDR_PUPD0_0 << (UART_TX_PIN * 2);
+	UART_RX_PORT->PUPDR |= GPIO_PUPDR_PUPD0_0 << (UART_RX_PIN * 2);
 
 	//alternative active
 	UART_TX_PORT->AFR[0] |= GPIO_AF7_USART3 << (UART_TX_PIN * 4);
@@ -75,13 +78,13 @@ static inline void uartGPIOInit(void)
 
 void UART_PERH_IRQHandler(void)
 {
-	if(UART_PERH->ISR & USART_ISR_RXNE && UART_PERH->CR1 & USART_CR1_RE)
+	if((UART_PERH->ISR & USART_ISR_RXNE) && (UART_PERH->CR1 & USART_CR1_RE))
 	{
 		uartStruct.uartReveiveBuffer[uartStruct.countReceived ++] = UART_PERH->RDR;
 	}
-	if(UART_PERH->ISR & USART_ISR_TXE && UART_PERH->CR1 & USART_CR1_TE)
+	if((UART_PERH->ISR & USART_ISR_TXE) && (UART_PERH->CR1 & USART_CR1_TE))
 	{
-		if(uartStruct.sizeToTransmit > 0)
+		if(uartStruct.sizeToTransmit > 1)
 		{
 			UART_PERH->TDR = uartStruct.uartTransmitBuffer[uartStruct.countTransmit];
 			uartStruct.countTransmit ++;
@@ -89,9 +92,12 @@ void UART_PERH_IRQHandler(void)
 		}
 		else
 		{
+			UART_PERH->TDR = uartStruct.uartTransmitBuffer[uartStruct.countTransmit];
+			uartStruct.countTransmit ++;
+			uartStruct.sizeToTransmit--;
 			//change to receive
-			uartSwitchToReceive();
 			uartStruct.uartFreeFlag = UART_IS_FREE;
+			uartSwitchToReceive();
 		}
 	}
 
@@ -103,9 +109,12 @@ void UART_PERH_IRQHandler(void)
  */
 static void uartTransmit(uint8_t *dataToSend, uint32_t sizeOfData)
 {
-	while(uartStruct.uartFreeFlag == UART_IS_BUSY);		//wait until send data
+	while(uartStruct.uartFreeFlag == UART_IS_BUSY)		//wait until send data
+	{
+		timerDelayUs(20);
+	}
 	uartStruct.uartFreeFlag = UART_IS_BUSY;
-//	memcpy(dataTransmitBufferPointer, dataToSend, sizeOfData);
+
 	//copy data
 	for(uint32_t i=0; i<sizeOfData; i++)
 	{
@@ -147,14 +156,15 @@ void uartPrintf(const char *mesToPrint)
 
 static void uartSwitchToReceive(void)
 {
-	while(! (UART_PERH->ISR & USART_ISR_TC));
-	UART_PERH->CR1 &= ~(USART_CR1_TE | USART_CR1_TXEIE);
-	UART_PERH->CR1 |= USART_CR1_RE | USART_CR1_RXNEIE;
+	uint8_t dummyByte;
+	UART_PERH->CR1 &= ~USART_CR1_TXEIE;
+	dummyByte = UART_PERH->RDR;
+	UART_PERH->CR1 |= USART_CR1_RXNEIE;
 }
 
 static void uartSwitchToTransmit(void)
 {
 	while( UART_PERH->ISR & USART_ISR_RXNE);
-	UART_PERH->CR1 &= ~(USART_CR1_RE | USART_CR1_RXNEIE);
-	UART_PERH->CR1 |= USART_CR1_TE | USART_CR1_TXEIE;
+	UART_PERH->CR1 &= ~USART_CR1_RXNEIE;
+	UART_PERH->CR1 |= USART_CR1_TXEIE;
 }
