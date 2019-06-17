@@ -115,6 +115,7 @@ static void checkAndClearProgramErrors(void)
 
 void flashDriverProramDoubleWord(uint32_t adress, uint64_t Data)
 {
+	 __disable_irq();
 	while(FLASH->SR & FLASH_SR_BSY);	//wait until flash operation is availble
 
 	if(FLASH->CR & FLASH_CR_LOCK)
@@ -142,5 +143,6 @@ void flashDriverProramDoubleWord(uint32_t adress, uint64_t Data)
 
 	FLASH->CR &= ~FLASH_CR_PG;	//end program
 	lockFlash();
+	__enable_irq();
 }
 
