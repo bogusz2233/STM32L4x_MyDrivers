@@ -156,9 +156,8 @@ void uartPrintf(const char *mesToPrint)
 
 static void uartSwitchToReceive(void)
 {
-	uint8_t dummyByte;
 	UART_PERH->CR1 &= ~USART_CR1_TXEIE;
-	dummyByte = UART_PERH->RDR;
+	UART_PERH->RDR;		//read to clear register
 	UART_PERH->CR1 |= USART_CR1_RXNEIE;
 }
 
