@@ -24,21 +24,23 @@ void uartInit(void)
 {
 	uartGPIOInit();
 	perhUartClockEnable();
-	UART_PERH->BRR = USARTDIV_16_OVR & 0xffff;
-	UART_PERH->CR1 |= USART_CR1_UE;
 
+	UART_PERH->CR1 |= USART_CR1_UE;
 	//CR reg setup
 	UART_PERH->CR1 |= 	USART_CR1_RXNEIE	//RXNEIE interrupt is enable
-						|USART_CR1_RE		// Receiver mode enable
-						|USART_CR1_TE;
+						|USART_CR1_RE
+						|USART_CR1_TE;	// Receiver mode enable
+
 
 	//set baudrate
+	UART_PERH->BRR = USARTDIV_16_OVR & 0xffff;
 
 	//interupt set
-	NVIC_SetPriority(UART_PERH_IRQ, 3);
+	NVIC_SetPriority(UART_PERH_IRQ, 0);
 	NVIC_EnableIRQ(UART_PERH_IRQ);
 
 	uartStruct.uartFreeFlag = UART_IS_FREE;		//uart is free
+	uartSwitchToReceive();
 }
 
 /*
@@ -47,10 +49,6 @@ void uartInit(void)
 static inline void uartGPIOInit(void)
 {
 	portUartClockEnable();
-
-	//Unlock port
-	UART_TX_PORT->LCKR &= ~ GPIO_LCKR_LCK0 << UART_TX_PIN;
-	UART_RX_PORT->LCKR &= ~ GPIO_LCKR_LCK0 << UART_RX_PIN;
 
 	//set up MODER REG
 	UART_TX_PORT->MODER &= ~(GPIO_MODER_MODE0_Msk << (UART_TX_PIN  * 2));	//clear mode flag
@@ -78,11 +76,11 @@ static inline void uartGPIOInit(void)
 
 void UART_PERH_IRQHandler(void)
 {
-	if((UART_PERH->ISR & USART_ISR_RXNE) && (UART_PERH->CR1 & USART_CR1_RE))
+	if((UART_PERH->ISR & USART_ISR_RXNE) && (UART_PERH->CR1 & USART_CR1_RXNEIE))
 	{
 		uartStruct.uartReveiveBuffer[uartStruct.countReceived ++] = UART_PERH->RDR;
 	}
-	if((UART_PERH->ISR & USART_ISR_TXE) && (UART_PERH->CR1 & USART_CR1_TE))
+	if((UART_PERH->ISR & USART_ISR_TXE) && (UART_PERH->CR1 & USART_CR1_TXEIE))
 	{
 		if(uartStruct.sizeToTransmit > 1)
 		{
@@ -157,13 +155,13 @@ void uartPrintf(const char *mesToPrint)
 static void uartSwitchToReceive(void)
 {
 	UART_PERH->CR1 &= ~USART_CR1_TXEIE;
-	UART_PERH->RDR;		//read to clear register
+	while(!(UART_PERH->ISR & USART_ISR_TC));
 	UART_PERH->CR1 |= USART_CR1_RXNEIE;
 }
 
 static void uartSwitchToTransmit(void)
 {
-	while( UART_PERH->ISR & USART_ISR_RXNE);
 	UART_PERH->CR1 &= ~USART_CR1_RXNEIE;
+	while(!(UART_PERH->ISR & USART_ISR_TC));
 	UART_PERH->CR1 |= USART_CR1_TXEIE;
 }
