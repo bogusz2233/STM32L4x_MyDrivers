@@ -9,8 +9,9 @@
 
 //private function
 static void sendStopBit(void);
+
 /*
- * 	Init of i2c gpio
+ * 	Init I2C GPIO
  * 	PB6 -> SCL
  * 	PB7 -> SDA
  */
@@ -21,10 +22,10 @@ inline void i2cGpioInit(void)
 
 	//set up MODER REG
 	I2C_SDA_PORT->MODER &= ~(GPIO_MODER_MODE0_Msk << (I2C_SDA_PIN  * 2));	//clear mode flag
-	I2C_SDA_PORT->MODER |= GPIO_MODER_MODE0_1 << (I2C_SDA_PIN * 2);		//alternate function
+	I2C_SDA_PORT->MODER |= GPIO_MODER_MODE0_1 << (I2C_SDA_PIN * 2);		//alternative function
 
 	I2C_SCL_PORT->MODER &= ~(GPIO_MODER_MODE0_Msk << (I2C_SCL_PIN  * 2));	//clear mode flag
-	I2C_SCL_PORT->MODER |= GPIO_MODER_MODE0_1 << (I2C_SCL_PIN  * 2);		//alternate function
+	I2C_SCL_PORT->MODER |= GPIO_MODER_MODE0_1 << (I2C_SCL_PIN  * 2);		//alternative function
 
 	//Setup OSPEEDR reg, speed work for pin
 	I2C_SDA_PORT->OSPEEDR &= ~(GPIO_OSPEEDR_OSPEED0_Msk << (I2C_SDA_PIN  * 2));
@@ -39,6 +40,7 @@ inline void i2cGpioInit(void)
 	//pull uo
 	I2C_SCL_PORT->PUPDR |= GPIO_PUPDR_PUPD0_0 << I2C_SCL_PIN;
 	I2C_SDA_PORT->PUPDR |= GPIO_PUPDR_PUPD0_0 << I2C_SDA_PIN;
+
 	//alternate setup
 #if(I2C_SCL_PIN < 8)
 	I2C_SCL_PORT->AFR[0] |= GPIO_AF4_I2C1 << (I2C_SCL_PIN * 4);
@@ -66,29 +68,28 @@ inline void i2cInit(void)
 						| (0xF <<I2C_TIMINGR_SCLH_Pos)
 						| (0x2 <<I2C_TIMINGR_SDADEL_Pos)
 						| (0x4 <<I2C_TIMINGR_SCLDEL_Pos);
-//	I2C_PERH->CR1 |= I2C_CR1_SBC;
-	I2C_PERH->CR1 |= I2C_CR1_PE;
 
+	I2C_PERH->CR1 |= I2C_CR1_PE;	// perph enable
 }
 
 /*
  *  Function to ask I2C for reg
  *  arg:
- *  	deviceAddr - device adress
- *  	regAddr	- register number
+ *  	deviceAddr - device address
+ *  	regAddr	- register address
  */
 uint8_t i2CReadReg(uint8_t deviceAddr,uint8_t regAddr)
 {
-	char value = 0;
+	char receivedValue = 0;
 
 	//Init configuration =======================================
 	I2C_PERH->CR2 &= ~(I2C_CR2_NBYTES | I2C_CR2_SADD);	//clear fields
 	I2C_PERH->CR2 |= 1 << I2C_CR2_NBYTES_Pos;	//bytes to transmit
 	I2C_PERH->CR2 |= deviceAddr;
-	I2C_PERH->CR2 &= ~I2C_CR2_RD_WRN;			//write byte
-	I2C_PERH->CR2 |= I2C_CR2_START;				//start communicatioin
+	I2C_PERH->CR2 &= ~I2C_CR2_RD_WRN;			// Transfer direction - write byte
+	I2C_PERH->CR2 |= I2C_CR2_START;				//start communication
 
-	while(!((I2C1->ISR & I2C_ISR_TXE ) | (I2C1->ISR & I2C_ISR_NACKF )));	//Wait until adress sended
+	while(!((I2C1->ISR & I2C_ISR_TXE ) | (I2C1->ISR & I2C_ISR_NACKF )));	//Wait until address sended
 	if(I2C1->ISR & I2C_ISR_NACKF)
 	{
 		return 0;
@@ -102,17 +103,17 @@ uint8_t i2CReadReg(uint8_t deviceAddr,uint8_t regAddr)
 
 	//Fetch data
 	while(!(I2C_PERH->ISR & I2C_ISR_RXNE));
-	value = I2C_PERH->RXDR;
+	receivedValue = I2C_PERH->RXDR;
 
 	sendStopBit();
-	return value;
+	return receivedValue;
 }
 
 /*
  *  Function to write using I2C in reg
  *  arg:
- *  	deviceAddr - device adress
- *  	regAddr	- register adress
+ *  	deviceAddr - device address
+ *  	regAddr	- register address
  *  	dataToWrite
  */
 void i2CWriteReg(uint8_t deviceAddr,uint8_t regAddr,uint8_t dataToWrite)
@@ -124,17 +125,17 @@ void i2CWriteReg(uint8_t deviceAddr,uint8_t regAddr,uint8_t dataToWrite)
 	I2C_PERH->CR2 &= ~I2C_CR2_RD_WRN;			//write byte
 	I2C_PERH->CR2 |= I2C_CR2_START;				//start communicatioin
 
-	while(!((I2C1->ISR & I2C_ISR_TXE ) | (I2C1->ISR & I2C_ISR_NACKF )));	//Wait until adress sended
+	while(!((I2C1->ISR & I2C_ISR_TXE ) | (I2C1->ISR & I2C_ISR_NACKF )));	//Wait until address sended
 	if(I2C1->ISR & I2C_ISR_NACKF)
 	{
 		return;
 	}
 
 	I2C_PERH->TXDR = regAddr;					//send register
-	while(!(I2C_PERH->ISR & I2C_ISR_TXE));		// waint until buffer empty
+	while(!(I2C_PERH->ISR & I2C_ISR_TXE));		// Wait until buffer empty
 	I2C_PERH->TXDR = dataToWrite;
 
-	while(!(I2C_PERH->ISR & I2C_ISR_TC));		//wait until transmmit end
+	while(!(I2C_PERH->ISR & I2C_ISR_TC));		//wait until transmit end
 
 	sendStopBit();
 }

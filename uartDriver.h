@@ -44,5 +44,5 @@ typedef struct{
 //public function
 void uartInit(void);
 void uartPrintf(const char *);
-
+void uartClearBuffer(void);
 #endif /* STM32L4X_MYDRIVER_UARTDRIVER_H_ */

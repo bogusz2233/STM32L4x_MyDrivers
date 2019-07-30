@@ -13,19 +13,18 @@
 
 //Periph clock enable
 #define i2cClockEnable()		RCC->APB1ENR1 |= RCC_APB1ENR1_I2C1EN
-//SCL
+
+//SCL pin
 #define I2C_SCL_PORT	GPIOA
 #define I2C_SCL_PIN	9
 
-//SDA
+//SDA pin
 #define I2C_SDA_PORT	GPIOA
 #define I2C_SDA_PIN	10
 
-#define GPIO_CR_OUT_RESEST (uint32_t)0xf
+#define I2C_PERH		I2C1
 
-
-#define I2C_PERH			I2C1
-
+//public function:
 void i2cInit(void);
 void i2cGpioInit(void);
 uint8_t i2CReadReg(uint8_t,uint8_t);
