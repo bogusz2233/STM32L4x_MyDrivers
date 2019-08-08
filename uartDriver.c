@@ -25,17 +25,21 @@ void uartInit(void)
 	uartGPIOInit();
 	perhUartClockEnable();
 
-	UART_PERH->CR1 |= USART_CR1_UE;
-	//CR reg setup
-	UART_PERH->CR1 |= 	USART_CR1_RXNEIE	//RXNEIE interrupt is enable
-						|USART_CR1_RE
-						|USART_CR1_TE;	// Receiver mode enable
-
+	//disable module
+	UART_PERH->CR1 &= ~USART_CR1_UE;
 
 	//set baudrate
 	UART_PERH->BRR = USARTDIV_16_OVR & 0xffff;
 
-	//interupt set
+	//enable module
+	UART_PERH->CR1 |= USART_CR1_UE;
+
+	//CR reg setup
+	UART_PERH->CR1 |= 	USART_CR1_RXNEIE	//RXNEIE interrupt is enable
+						|USART_CR1_RE		// Receiver mode enable
+						|USART_CR1_TE;		//Transmitter mode enable
+
+	//set interrupt Priority
 	NVIC_SetPriority(UART_PERH_IRQ, 0);
 	NVIC_EnableIRQ(UART_PERH_IRQ);
 
@@ -63,15 +67,14 @@ static inline void uartGPIOInit(void)
 
 	UART_RX_PORT->OSPEEDR &= ~(GPIO_OSPEEDR_OSPEED0_Msk << (UART_RX_PIN * 2));
 	UART_RX_PORT->OSPEEDR |= GPIO_OSPEEDER_OSPEEDR0_1 << (UART_RX_PIN * 2);
-//
-//	//set pull up
+
+	//set pull up
 	UART_TX_PORT->PUPDR |= GPIO_PUPDR_PUPD0_0 << (UART_TX_PIN * 2);
 	UART_RX_PORT->PUPDR |= GPIO_PUPDR_PUPD0_0 << (UART_RX_PIN * 2);
 
 	//alternative active
 	UART_TX_PORT->AFR[0] |= GPIO_AF7_USART3 << (UART_TX_PIN * 4);
 	UART_RX_PORT->AFR[0] |= GPIO_AF7_USART3 << (UART_RX_PIN * 4);
-
 }
 
 void UART_PERH_IRQHandler(void)
@@ -93,13 +96,13 @@ void UART_PERH_IRQHandler(void)
 			UART_PERH->TDR = uartStruct.uartTransmitBuffer[uartStruct.countTransmit];
 			uartStruct.countTransmit ++;
 			uartStruct.sizeToTransmit--;
-			//change to receive
 			uartStruct.uartFreeFlag = UART_IS_FREE;
+			//change to receive
 			uartSwitchToReceive();
 		}
 	}
-
 }
+
 /*
  *	Transmit data
  *		dataToSend - pointer to data which has to be send
@@ -118,6 +121,7 @@ static void uartTransmit(uint8_t *dataToSend, uint32_t sizeOfData)
 	{
 		uartStruct.uartTransmitBuffer[i] = dataToSend[i];
 	}
+
 	uartStruct.sizeToTransmit = sizeOfData;
 	uartStruct.countTransmit = 0;
 	uartSwitchToTransmit();
@@ -142,7 +146,7 @@ void uartPrintf(const char *mesToPrint)
 	// jeżeli był bląd
 	if(textToPrintSize == 1024)
 	{
-		uint8_t errorMesg[] = "Brakuje znaku \\0 !\n";
+		uint8_t errorMesg[] = "Brakuje znaku \\0!\n";
 		uartTransmit(errorMesg,sizeof(errorMesg));
 	}
 	else

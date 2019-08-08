@@ -140,6 +140,8 @@ void i2CWriteReg(uint8_t deviceAddr,uint8_t regAddr,uint8_t dataToWrite)
 	sendStopBit();
 }
 
+
+
 /*
  *  Function to ask I2C for mulpiple bytes
  *  arg:

@@ -14,10 +14,10 @@
 #define perhUartClockEnable()		RCC->APB1ENR1 |= RCC_APB1ENR1_USART2EN
 
 // Pins
-#define UART_TX_PIN		2
+#define UART_TX_PIN			2
 #define UART_TX_PORT		GPIOA
 
-#define UART_RX_PIN		3
+#define UART_RX_PIN			3
 #define UART_RX_PORT		GPIOA
 
 #define UART_PERH			USART2
@@ -32,6 +32,7 @@
 //State descrive
 #define UART_IS_BUSY		0
 #define UART_IS_FREE		1
+
 typedef struct{
 	uint32_t countReceived;
 	uint8_t uartReveiveBuffer[UART_BUFFER_SIZE];
