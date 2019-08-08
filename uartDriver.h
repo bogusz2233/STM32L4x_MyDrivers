@@ -33,17 +33,13 @@
 #define UART_IS_BUSY		0
 #define UART_IS_FREE		1
 
-typedef struct{
-	uint32_t countReceived;
-	uint8_t uartReveiveBuffer[UART_BUFFER_SIZE];
-	uint32_t countTransmit;
-	uint32_t sizeToTransmit;
-	uint8_t uartTransmitBuffer[UART_BUFFER_SIZE];
-	uint8_t uartFreeFlag;		// it show if uart is free to send data
-}UartStruct;
 
 //public function
 void uartInit(void);
 void uartPrintf(const char *);
 void uartClearBuffer(void);
+void uartStartReceivingData(void);
+void uartStopReceivingData(void);
+void uartGetReceivedData(uint8_t *);
+
 #endif /* STM32L4X_MYDRIVER_UARTDRIVER_H_ */

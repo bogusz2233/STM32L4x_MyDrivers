@@ -10,19 +10,30 @@
 #include "timersDriver.h"
 
 //private function
-static void uartGPIOInit(void);
-static void uartSwitchToReceive(void);
-static void uartSwitchToTransmit(void);
-static void uartTransmit(uint8_t *, uint32_t);
+static void gpioInit(void);
+static void stopReceiving(void);
+static void stopTransmiting(void);
+static void startReceiving(void);
+static void startTransmitting(void);
+static void transmitData(uint8_t *, uint32_t);
 
-UartStruct uartStruct;
+
+typedef struct{
+	uint32_t countReceived;
+	uint8_t uartReveiveBuffer[UART_BUFFER_SIZE];
+	uint32_t countTransmit;
+	uint32_t sizeToTransmit;
+	uint8_t uartTransmitBuffer[UART_BUFFER_SIZE];
+	uint8_t uartFreeFlag;		// it show if uart is free to send data
+}UarStruct;
+UarStruct uartStruct;
 
 /*
  *  Uart perh init
  */
 void uartInit(void)
 {
-	uartGPIOInit();
+	gpioInit();
 	perhUartClockEnable();
 
 	//disable module
@@ -35,8 +46,7 @@ void uartInit(void)
 	UART_PERH->CR1 |= USART_CR1_UE;
 
 	//CR reg setup
-	UART_PERH->CR1 |= 	USART_CR1_RXNEIE	//RXNEIE interrupt is enable
-						|USART_CR1_RE		// Receiver mode enable
+	UART_PERH->CR1 |=	USART_CR1_RE		// Receiver mode enable
 						|USART_CR1_TE;		//Transmitter mode enable
 
 	//set interrupt Priority
@@ -44,13 +54,14 @@ void uartInit(void)
 	NVIC_EnableIRQ(UART_PERH_IRQ);
 
 	uartStruct.uartFreeFlag = UART_IS_FREE;		//uart is free
-	uartSwitchToReceive();
+	stopReceiving();
+	stopTransmiting();
 }
 
 /*
  * Initialize uart port GPIO
  */
-static inline void uartGPIOInit(void)
+static inline void gpioInit(void)
 {
 	portUartClockEnable();
 
@@ -98,8 +109,12 @@ void UART_PERH_IRQHandler(void)
 			uartStruct.sizeToTransmit--;
 			uartStruct.uartFreeFlag = UART_IS_FREE;
 			//change to receive
-			uartSwitchToReceive();
+			stopTransmiting();
 		}
+	}
+	if(UART_PERH->ISR & USART_ISR_ORE)
+	{
+		UART_PERH->ICR |= USART_ICR_ORECF;	//Clear flag
 	}
 }
 
@@ -108,7 +123,7 @@ void UART_PERH_IRQHandler(void)
  *		dataToSend - pointer to data which has to be send
  *		sizeOfData - amount of data to send
  */
-static void uartTransmit(uint8_t *dataToSend, uint32_t sizeOfData)
+static void transmitData(uint8_t *dataToSend, uint32_t sizeOfData)
 {
 	while(uartStruct.uartFreeFlag == UART_IS_BUSY)		//wait until send data
 	{
@@ -124,7 +139,7 @@ static void uartTransmit(uint8_t *dataToSend, uint32_t sizeOfData)
 
 	uartStruct.sizeToTransmit = sizeOfData;
 	uartStruct.countTransmit = 0;
-	uartSwitchToTransmit();
+	startTransmitting();
 }
 
 /*
@@ -147,25 +162,64 @@ void uartPrintf(const char *mesToPrint)
 	if(textToPrintSize == 1024)
 	{
 		uint8_t errorMesg[] = "Brakuje znaku \\0!\n";
-		uartTransmit(errorMesg,sizeof(errorMesg));
+		transmitData(errorMesg,sizeof(errorMesg));
 	}
 	else
 	{
-		uartTransmit((uint8_t *)mesToPrint, (uint32_t)textToPrintSize);
+		transmitData((uint8_t *)mesToPrint, (uint32_t)textToPrintSize);
 	}
 }
 
 
-static void uartSwitchToReceive(void)
+static void startReceiving(void)
 {
-	UART_PERH->CR1 &= ~USART_CR1_TXEIE;
 	while(!(UART_PERH->ISR & USART_ISR_TC));
 	UART_PERH->CR1 |= USART_CR1_RXNEIE;
 }
 
-static void uartSwitchToTransmit(void)
+static void startTransmitting(void)
 {
-	UART_PERH->CR1 &= ~USART_CR1_RXNEIE;
 	while(!(UART_PERH->ISR & USART_ISR_TC));
 	UART_PERH->CR1 |= USART_CR1_TXEIE;
+}
+
+/*
+ *  Module stop receiving data
+ */
+static void stopReceiving(void)
+{
+	UART_PERH->CR1 &= ~USART_CR1_RXNEIE;
+}
+
+/*
+ *  Module stop transmiting data
+ */
+static void stopTransmiting(void)
+{
+	UART_PERH->CR1 &= ~USART_CR1_TXEIE;
+}
+
+/*
+ * Prepared empy buffer for data
+ */
+void uartClearBuffer(void)
+{
+	uartStruct.countReceived = 0;
+}
+
+void uartStartReceivingData(void)
+{
+	startReceiving();
+}
+void uartStopReceivingData(void)
+{
+	stopReceiving();
+}
+
+void uartGetReceivedData(uint8_t *dataBuffer)
+{
+	for(uint32_t i=0; i< uartStruct.countReceived; i++)
+	{
+		dataBuffer[i] = uartStruct.uartReveiveBuffer[i];
+	}
 }
