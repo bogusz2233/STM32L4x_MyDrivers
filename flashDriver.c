@@ -67,7 +67,6 @@ void flashDriverPageErase(uint8_t pageAdress)
 	FLASH->CR &= ~FLASH_CR_PER;	//Page erase disable
 
 	lockFlash();
-
 }
 
 /*

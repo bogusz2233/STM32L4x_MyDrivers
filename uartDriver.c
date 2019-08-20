@@ -127,7 +127,7 @@ static void transmitData(uint8_t *dataToSend, uint32_t sizeOfData)
 {
 	while(uartStruct.uartFreeFlag == UART_IS_BUSY)		//wait until send data
 	{
-		timerDelayUs(20);
+		timerDelayUs(300);
 	}
 	uartStruct.uartFreeFlag = UART_IS_BUSY;
 

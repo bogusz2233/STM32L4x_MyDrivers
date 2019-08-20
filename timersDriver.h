@@ -8,8 +8,9 @@
 #ifndef STM32L4X_MYDRIVER_TIMERSDRIVER_H_
 #define STM32L4X_MYDRIVER_TIMERSDRIVER_H_
 
-#define timerMsClockEnable() 	RCC->APB2ENR |= RCC_APB2ENR_TIM1EN
-#define TIMER_MS_PERH			TIM1
+#define timerMsClockEnable()   RCC->APB2ENR |= RCC_APB2ENR_TIM1EN
+#define TIMER_MS_PERH                  TIM1
+
 
 #define TIMER_MS_CLOCK_DIV	1
 #define TIMER_MS_PRESCALER 	((uint64_t)CLOCK_FREQ_MHZ * 1000000 *TIMER_MS_CLOCK_DIV/ 1000)
@@ -45,6 +46,7 @@ uint64_t timerGetUsTime(void);
 void timerDelayUs(uint64_t);
 
 void TIM1_UP_TIM16_IRQHandler(void);
+void timerMiliSecondService(void);
 
 
 #endif /* STM32L4X_MYDRIVER_TIMERSDRIVER_H_ */

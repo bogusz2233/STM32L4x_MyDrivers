@@ -10,6 +10,8 @@
 
 #include "main.h"
 #include "timersDriver.h"
+#include "leds.h"
+#include "buzzer.h"
 
 uint32_t seconds = 0;
 uint64_t milliSeconds = 0;
@@ -91,6 +93,13 @@ void TIM1_UP_TIM16_IRQHandler(void)
 		TIMER_US_PERH->SR &= ~ TIM_SR_UIF;
 		milliSeconds++;
 	}
+
+	timerMiliSecondService();
+}
+
+__attribute__((weak)) void timerMiliSecondService(void)
+{
+	//nothing here, you must overwrite it somewhere
 }
 
 #endif /* STM32L4X_MYDRIVER_TIMERSDRIVER_C_ */
