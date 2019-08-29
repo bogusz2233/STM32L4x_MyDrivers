@@ -34,7 +34,7 @@ inline void timerMsInit(void)
 
 	TIMER_MS_PERH->DIER |= TIM_DIER_UIE;	//update irqu enable
 
-	NVIC_SetPriority(TIM1_UP_TIM16_IRQn, 2);
+	NVIC_SetPriority(TIM1_UP_TIM16_IRQn, 0);
 	NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
 
 	TIMER_MS_PERH->CR1 |= TIM_CR1_CEN; // timer start count

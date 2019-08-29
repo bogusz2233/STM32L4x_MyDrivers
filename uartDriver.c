@@ -50,7 +50,7 @@ void uartInit(void)
 						|USART_CR1_TE;		//Transmitter mode enable
 
 	//set interrupt Priority
-	NVIC_SetPriority(UART_PERH_IRQ, 0);
+	NVIC_SetPriority(UART_PERH_IRQ, 1);
 	NVIC_EnableIRQ(UART_PERH_IRQ);
 
 	uartStruct.uartFreeFlag = UART_IS_FREE;		//uart is free

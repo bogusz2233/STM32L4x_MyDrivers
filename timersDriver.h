@@ -8,8 +8,8 @@
 #ifndef STM32L4X_MYDRIVER_TIMERSDRIVER_H_
 #define STM32L4X_MYDRIVER_TIMERSDRIVER_H_
 
-#define timerMsClockEnable()   RCC->APB2ENR |= RCC_APB2ENR_TIM1EN
-#define TIMER_MS_PERH                  TIM1
+#define timerMsClockEnable() 	RCC->APB2ENR |= RCC_APB2ENR_TIM1EN
+#define TIMER_MS_PERH			TIM1
 
 
 #define TIMER_MS_CLOCK_DIV	1
